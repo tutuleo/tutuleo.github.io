@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图图时报</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            display: flex;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                padding: 10px;
+                gap: 10px;
+            }
+            .hot-search-list, .ai-result {
+                width: 100%;
+            }
+            .hot-item {
+                padding: 8px 10px;
+            }
+            .rank {
+                width: 20px;
+                height: 20px;
+                line-height: 20px;
+                margin-right: 10px;
+            }
+            .title {
+                font-size: 14px;
+            }
+            .hot {
+                font-size: 12px;
+            }
+        }
+        h1 {
+            color: #ff4d4f;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .hot-search-list {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            flex: 1;
+        }
+        .hot-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .hot-item:hover {
+            background-color: #fafafa;
+        }
+        .hot-item:last-child {
+            border-bottom: none;
+        }
+        .rank {
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            text-align: center;
+            border-radius: 4px;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+        .rank-1 {
+            background-color: #ff4d4f;
+            color: white;
+        }
+        .rank-2 {
+            background-color: #faad14;
+            color: white;
+        }
+        .rank-3 {
+            background-color: #52c41a;
+            color: white;
+        }
+        .rank-other {
+            background-color: #f0f0f0;
+            color: #666;
+        }
+        .title {
+            flex: 1;
+            font-size: 16px;
+        }
+        .hot {
+            color: #ff4d4f;
+            font-size: 14px;
+        }
+        .ai-result {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            display: none;
+            flex: 1;
+        }
+        .ai-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .ai-content {
+            line-height: 1.6;
+            color: #666;
+        }
+        .ai-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+    </style>
+
+<!-- 百度统计 -->
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?272119dae6cce7e3ded69c4a57f828d1";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-N13ZH72VV9"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-N13ZH72VV9');
+</script>
+</head>
+<body>
+    <h1>图图时报</h1>
+    
+    <div class="hot-search-list" id="hotSearchList">
+        <!-- 热搜列表将通过JavaScript动态生成 -->
+    </div>
+    
+    <div class="ai-result" id="aiResult">
+        <div class="ai-title" id="aiTitle"></div>
+        <img class="ai-image" id="aiImage" src="" alt="AI生成图片">
+        <div class="ai-content" id="aiContent"></div>
+    </div>
+
+    <script>
+        // 获取抖音热搜数据
+        async function fetchDouyinHotSearch() {
+            try {
+                const response = await fetch('https://apis.tianapi.com/douyinhot/index?key=96b363c6747852407ce535a44bf5e318');
+                const data = await response.json();
+                if(data.code === 200) {
+                    return data.result.list.map(item => ({
+                        title: item.word,
+                        hot: item.label === 1 ? '新' : item.label === 3 ? '热' : '爆',
+                        hotindex: item.hotindex
+                    }));
+                } else {
+                    console.error('获取热搜失败:', data.msg);
+                    return [];
+                }
+            } catch (error) {
+                console.error('请求出错:', error);
+                return [];
+            }
+        }
+
+        // 渲染热搜列表
+        async function renderHotSearchList() {
+            const hotSearchList = document.getElementById('hotSearchList');
+            const data = await fetchDouyinHotSearch();
+            
+            hotSearchList.innerHTML = '';
+            
+            data.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'hot-item';
+                div.onclick = () => generateAIContent(item.title);
+                
+                const rankClass = index < 3 ? `rank-${index + 1}` : 'rank-other';
+                
+                div.innerHTML = `
+                    <div class="rank ${rankClass}">${index + 1}</div>
+                    <div class="title">${item.title}</div>
+                    <div class="hot">${item.hot}</div>
+                `;
+                
+                hotSearchList.appendChild(div);
+            });
+        }
+        
+        // 页面加载时渲染热搜列表
+        renderHotSearchList();
+
+        // 调用AI生成内容
+        async function callAIGenerateContent(title) {
+            try {
+                // 获取当前时间并格式化为中文习惯
+                const now = new Date();
+                const formattedDate = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${now.getHours()}时${now.getMinutes()}分`;
+                
+                const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer sk-ojbwxycaqktwyjshtxkxssvgixseuxwppmwelhguxkfzpaom',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'Qwen/Qwen3-235B-A22B',
+                        messages: [{
+                            role: 'user',
+                            content: `当前时间是${formattedDate}，请用中文简要分析"${title}"这一热搜话题的背景和影响，字数在200字左右`
+                        }],
+                        max_tokens: 512,
+                        temperature: 0.7
+                    })
+                });
+                const data = await response.json();
+                return data.choices[0].message.content;
+            } catch (error) {
+                console.error('AI调用失败:', error);
+                return 'AI内容生成失败，请稍后再试';
+            }
+        }
+
+
+
+        // 生成AI内容
+        async function generateAIContent(title) {
+            const aiResult = document.getElementById('aiResult');
+            const aiTitle = document.getElementById('aiTitle');
+            const aiImage = document.getElementById('aiImage');
+            const aiContent = document.getElementById('aiContent');
+            
+            // 显示加载状态
+            aiResult.style.display = 'block';
+            aiTitle.textContent = `关于"${title}"的AI生成内容`;
+            aiImage.src = '';
+            aiContent.textContent = 'AI正在生成内容，请稍候...';
+            
+            try {
+                // 调用AI接口
+                const content = await callAIGenerateContent(title);
+                
+                // 更新UI
+                aiImage.src = 'https://picsum.photos/800/400?random=' + Math.random();
+                aiContent.textContent = content;
+            } catch (error) {
+                aiContent.textContent = 'AI内容生成失败，请稍后再试';
+            }
+        }
+        
+
+    </script>
+</body>
+</html>
